@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TourIT Dashboard</title>
+
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon/favicon-16x16.png">
+    <link rel="manifest" href="favicon/site.webmanifest">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-KK94CHFLLe+nY2dmCWGMq91rCGa5gtU4mk92HdvYe+M/SXH301p5ILy+dN9+nJOZ" crossorigin="anonymous">
+    <link href="https://api.fontshare.com/v2/css?f[]=switzer@700,500,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@48,400,1,0" />
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+
+<script>
+    function onloadfxns() {
+        setTimeout(onloadfxns, 1000)
+        clk()
+        setInterval(update_visitors(), 1000)
+        update_battery()
+        setInterval(update_status(), 1000)
+        setInterval(update_loc(), 1000)
+    }
+
+    function checkTime(i) {
+        if (i < 10) {
+            i = "0" + i
+        }; // add zero in front of numbers < 10
+        return i;
+    }
+
+    function clk(datetime) {
+        let currentdate = new Date()
+        let h = checkTime(currentdate.getHours())
+        let m = checkTime(currentdate.getMinutes())
+        let s = checkTime(currentdate.getSeconds())
+
+        datetime = " " + (currentdate.getMonth() + 1) + "/" +
+            currentdate.getDate() + "/" +
+            currentdate.getFullYear() + " - " +
+            h + ":" +
+            m + ":" + s
+
+        timeonly = h + ":" + m + ":" + s
+        document.getElementById("clkp").innerText = datetime
+    }
+
+    function update_visitors() {
+        let visitors
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var parser = new DOMParser();
+                var xml = parser.parseFromString(xhr.responseText, 'application/xml');
+                var items = xml.getElementsByTagName('item');
+                for (var i = 0; i < items.length; i++) {
+                    var item = items[i];
+                    visitors = item.getElementsByTagName('people_count')[0].textContent;
+                }
+                document.getElementById("v_count").innerHTML = visitors
+            }
+        };
+        xhr.open('GET', 'php/counter_xml.php', true);
+        xhr.send();
+    }
+
+    function update_battery() {
+        let hp = document.getElementById("battery-prog")
+        let bp = document.getElementById("batterypercent")
+        let battery_lvl = 0
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "php/batt_echo.php");
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                if (xhr.responseText == 0) {
+                    battery_lvl = 0
+                } else if (xhr.responseText == 1) {
+                    battery_lvl = 25
+                } else if (xhr.responseText == 2) {
+                    battery_lvl = 50
+                } else if (xhr.responseText == 3) {
+                    battery_lvl = 75
+                } else if (xhr.responseText == 4) {
+                    battery_lvl = 100
+                }
+                hp.setAttribute("value", battery_lvl)
+                bp.innerText = battery_lvl + "%"
+            } else {
+                console.log("Error: " + xhr.status);
+            }
+        };
+        xhr.send();
+        // const xhr = new XMLHttpRequest();
+        // const url = 'php/batter.txt';
+        // xhr.open('GET', url, true);
+        // xhr.responseType = 'text';
+        // xhr.onload = () => {
+        //     if (xhr.status === 200) {
+        //         const fileContents = '"' + xhr.responseText + '"';
+
+        //         console.log(fileContents);
+        //     }
+        // };
+
+        // // Send the request
+        // xhr.send();
+
+        // hp.setAttribute("value", battery_lvl)
+        // bp.innerText = battery_lvl + "%"
+    }
+
+    function update_status() {
+        let status = ["Offline", "Standby", "Touring"]
+        let stat = document.getElementById("stats")
+        let indi_svg = document.getElementById("indicator")
+        let indi_color = ["Red", "Orange", "Green"]
+            //fetch status int, 0=offline, 1=standby, 2=tourin
+        var stat_ind
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            var last_loc = 0;
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                var location = parseInt(xhr.responseText)
+                if (location > 0) {
+                    stat_ind = 2
+                } else {
+                    stat_ind = 1
+                }
+                stat.innerText = status[stat_ind]
+
+                indi_svg.setAttribute("fill", indi_color[stat_ind])
+            }
+        };
+        xhr.open('GET', 'php/location.php', true);
+        xhr.send();
+        // var xhr = new XMLHttpRequest();
+        // xhr.open("GET", "php/loc_fetch.php");
+        // xhr.onload = function() {
+        //     if (xhr.status === 200) {
+        //         var tour_stat = xhr.responseText
+        //         if (tour_stat > 0) {
+        //             stat_ind = 2
+        //         } else {
+        //             stat_ind = 1
+        //         }
+        //     } else {
+        //         console.log("Error: " + xhr.status);
+        //     }
+        //     stat.innerText = status[stat_ind]
+
+        //     indi_svg.setAttribute("fill", indi_color[stat_ind])
+        // };
+        // xhr.send();
+
+        // // if (status_value > 0) {
+        // //     stat_ind = 2
+        // // } else {
+        // //     stat_ind = 1
+        // // }
+
+
+    }
+
+    function update_loc() {
+        let loc_array = ['loc1', "loc2", "loc3", "loc4", "loc5", "loc6", "loc7", "loc8", "loc9", "loc10", "loc11"]
+        let circ_array = ['circ1', "circ2", "circ3", "circ4", "circ5", "circ6", "circ7", "circ8", "circ9", "circ10", "circ11"]
+
+        //fetch data to from location
+        //this location will be an integer , from 0 denoting location1 to 9 denoting location10
+        var location = 0
+        var last_loc = 0
+        var temp_location = 0
+            // var xhr = new XMLHttpRequest();
+            // xhr.open("GET", "php/loc_fetch.php");
+            // xhr.onload = function() {
+            //     if (xhr.status === 200) {
+            //         location = xhr.responseText
+            //         if (location == 0) {
+            //             let loc_id = loc_array[location]
+            //             let circ_id = circ_array[location]
+            //             let loc_text = document.getElementById(loc_id)
+            //             let loc_circ = document.getElementById(circ_id)
+            //             loc_circ.classList.add('expand_circ')
+            //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[10]
+        //             circ_id = circ_array[10]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 1) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 2) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 3) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 4) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 5) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 6) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 7) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 8) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 9) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         } else if (location == 10) {
+        //             let loc_id = loc_array[location]
+        //             let circ_id = circ_array[location]
+        //             let loc_text = document.getElementById(loc_id)
+        //             let loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.add('expand_circ')
+        //             loc_text.classList.add('current_loc')
+
+        //             loc_id = loc_array[location - 1]
+        //             circ_id = circ_array[location - 1]
+        //             loc_text = document.getElementById(loc_id)
+        //             loc_circ = document.getElementById(circ_id)
+        //             loc_circ.classList.remove('expand_circ')
+        //             loc_text.classList.remove('current_loc')
+        //         }
+        //         // if (xhr.responseText == 0) {
+        //         //     battery_lvl = 0
+        //         // } else if (xhr.responseText == 1) {
+        //         //     battery_lvl = 25
+        //         // } else if (xhr.responseText == 2) {
+        //         //     battery_lvl = 50
+        //         // } else if (xhr.responseText == 3) {
+        //         //     battery_lvl = 75
+        //         // } else if (xhr.responseText == 4) {
+        //         //     battery_lvl = 100
+        //         // }
+        //         // hp.setAttribute("value", battery_lvl)
+        //         // bp.innerText = battery_lvl + "%"
+        //     } else {
+        //         console.log("Error: " + xhr.status);
+        //     }
+        // };
+        // xhr.send();
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            var last_loc = 0;
+            if (xhr.readyState == 4 && xhr.status == 200) {
+                // var parser = new DOMParser();
+                // var xml = parser.parseFromString(xhr.responseText, 'application/xml');
+                // var items = xml.getElementsByTagName('item');
+                // for (var i = 0; i < items.length; i++) {
+                //     var item = items[i];
+                //     location = item.getElementsByTagName('ID')[0].textContent;
+                //     location = parseInt(location);
+                // }
+                location = parseInt(xhr.responseText)
+                    // if (location != 'NULL') {
+                    //     let loc_id = loc_array[location]
+                    //     let circ_id = circ_array[location]
+                    //     let loc_text = document.getElementById(loc_id)
+                    //     let loc_circ = document.getElementById(circ_id)
+                    //     loc_text.classList.add('current_loc')
+                    //     loc_circ.classList.add('expand_circ')
+                    //     temp_location = window.localStorage.getItem("last_loc")
+
+                //     if (temp_location != location) {
+                //         let prev_loc_id = loc_array[temp_location]
+                //         let prev_circ_id = circ_array[temp_location]
+                //         let prev_loc_text = document.getElementById(prev_loc_id)
+                //         let prev_loc_circ = document.getElementById(prev_circ_id)
+                //         prev_loc_text.classList.remove('current_loc')
+                //         prev_loc_circ.classList.remove('expand_circ')
+                //         window.localStorage.setItem("last_loc", location)
+                //     }
+                //     last_loc = location
+                // } else {
+                //     location = last_loc
+                // }
+                if (location == 0) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[10]
+                    circ_id = circ_array[10]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 1) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 2) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 3) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 4) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 5) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 6) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 7) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 8) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 9) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                } else if (location == 10) {
+                    let loc_id = loc_array[location]
+                    let circ_id = circ_array[location]
+                    let loc_text = document.getElementById(loc_id)
+                    let loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.add('expand_circ')
+                    loc_text.classList.add('current_loc')
+
+                    loc_id = loc_array[location - 1]
+                    circ_id = circ_array[location - 1]
+                    loc_text = document.getElementById(loc_id)
+                    loc_circ = document.getElementById(circ_id)
+                    loc_circ.classList.remove('expand_circ')
+                    loc_text.classList.remove('current_loc')
+                }
+            }
+        };
+        xhr.open('GET', 'php/location.php', true);
+        xhr.send();
+    }
+</script>
+
+<body onload="onloadfxns()">
+    <div class="container-fluid">
+
+        <nav class="navbar sticky-top navbar-expand-lg bg-body-tertiary">
+            <div class="container-md">
+                <a class="navbar-brand bold-txt" href="#">TourIT</a>
+                <p id="clkp" class="">M/D/Y - H:M:S</p>
+                <button class="btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasmenu" aria-controls="offcanvasRight"><span class="material-symbols-outlined">menu</span></button>
+            </div>
+        </nav>
+
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasmenu" aria-labelledby="offcanvasRightLabel">
+            <div class="offcanvas-header">
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <ul>
+                    <ol><a href="dashboard.html">Dashboard</a></ol>
+                    <ol><a href="aiupload.html">AI Script Upload</a></ol>
+                    <ol><a href="about.html">About TourIT</a></ol>
+                    <ol><a href="https://fatherwillmann.com/">Fr. George Willman SJ Museum</a></ol>
+                    <ol><a href="login.html">Sign Out</a></ol>
+                </ul>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col col-xl-1 d-none d-xl-block margin "></div>
+            <div class="col col-12 col-xl-10 page-title">
+                <h1 class="bold-txt">Dashboard</h1>
+            </div>
+            <div class="col col-xl-1 d-none d-xl-block margin "></div>
+        </div>
+
+        <div class="row mainrow">
+            <div class="col col-xl-1 d-none d-xl-block margin "></div>
+            <div class="col col-12 col-sm-12 col-md-12 col-lg-12 col-xl-5 left ">
+                <div class="row">
+                    <div class="visitors-box boxshadow">
+                        <h2 class="bold-txt v-z">Fr. George Willman SJ Museum</h2>
+                        <div class="blur"></div>
+                        <h2 class="bold-txt v-abs1">Visitors Count</h2>
+
+                        <!-- visitors-count -->
+                        <p id="v_count" class="v-abs2 semi-bold"></p>
+
+                        <icon class="v-abs3"><span class="material-symbols-outlined">group</span></icon>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col col-12 col-sm-12 col-xl-6">
+                        <div class="battery-box boxshadow">
+                            <progress id="battery-prog" value="100" max="100"></progress>
+                            <h2>Battery</h2>
+                            <p id="batterypercent" class="b-abs1">000%</p>
+                        </div>
+                    </div>
+                    <div class="col col-12 col-sm-12 col-xl-6">
+                        <div class="status-box boxshadow">
+                            <h2>Status</h2>
+                            <p id="stats">Touring</p>
+                            <svg class="indicator-box" viewBox="0 0 47 47" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M23.5 3.91675C12.69 3.91675 3.91666 12.6901 3.91666 23.5001C3.91666 34.3101 12.69 43.0834 23.5 43.0834C34.31 43.0834 43.0833 34.3101 43.0833 23.5001C43.0833 12.6901 34.31 3.91675 23.5 3.91675ZM30.1192 24.3422L32.9783 25.9872C34.2121 26.6922 34.6233 28.2784 33.9183 29.5122C33.2133 30.7459 31.6271 31.1572 30.3933 30.4522L27.5342 28.8072C27.3856 28.7227 27.2175 28.6785 27.0466 28.6788C26.8756 28.6791 26.7077 28.724 26.5594 28.809C26.4112 28.894 26.2876 29.0162 26.201 29.1636C26.1143 29.3109 26.0676 29.4783 26.0654 29.6493V32.9392C26.0654 34.3492 24.91 35.5242 23.4804 35.5242C22.0508 35.5242 20.8954 34.3688 20.8954 32.9392V29.6493C20.8954 28.9051 20.0729 28.4155 19.4267 28.8072L16.5675 30.4522C15.3337 31.1572 13.7475 30.7459 13.0425 29.5122C12.7011 28.9197 12.6084 28.2162 12.7846 27.5556C12.9608 26.8949 13.3915 26.331 13.9825 25.9872L16.8417 24.3422C17.4879 23.9701 17.4879 23.0301 16.8417 22.6384L13.9825 20.9934C13.3915 20.6496 12.9608 20.0857 12.7846 19.425C12.6084 18.7644 12.7011 18.0608 13.0425 17.4684C13.3863 16.8774 13.9502 16.4467 14.6109 16.2705C15.2715 16.0943 15.9751 16.1871 16.5675 16.5284L19.4267 18.1734C20.0729 18.5455 20.8954 18.0755 20.8954 17.3313V14.0413C20.8954 12.6313 22.0508 11.4563 23.4804 11.4563C24.91 11.4563 26.0654 12.6117 26.0654 14.0413V17.3313C26.0654 18.0755 26.8879 18.5651 27.5342 18.1734L30.3933 16.5284C30.9858 16.1871 31.6893 16.0943 32.3499 16.2705C33.0106 16.4467 33.5745 16.8774 33.9183 17.4684C34.6233 18.7022 34.2121 20.2884 32.9783 20.9934L30.1192 22.6384C29.4729 23.0301 29.4729 23.9701 30.1192 24.3422Z" fill="red" id="indicator"/>
+                                </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col  col-12 col-sm-12 col-md-12 col-lg-12 col-xl-5 right">
+                <div class="row">
+                    <div class="location-box boxshadow">
+                        <h2 class="bold-txt">Martha's Current Location</h2>
+
+                        <div class="col point" id="loc1">
+                            <div class="pointloc" id="circ1"></div>
+                            Museum Entry
+                        </div>
+                        <div class="col point " id="loc2">
+                            <div class="pointloc" id="circ2"></div>
+                            Fr. Willman Video Narration
+                        </div>
+                        <div class="col point " id="loc3">
+                            <div class="pointloc" id="circ3"></div>
+                            Fr. Willman Personal Background
+                        </div>
+                        <div class="col point " id="loc4">
+                            <div class="pointloc" id="circ4"></div>
+                            Ateneo Years
+                        </div>
+                        <div class="col point " id="loc5">
+                            <div class="pointloc" id="circ5"></div>
+                            Emergence in the Knights of Columbus
+                        </div>
+                        <div class="col point " id="loc6">
+                            <div class="pointloc" id="circ6"></div>
+                            Knights of Columbus
+                        </div>
+                        <div class="col point " id="loc7">
+                            <div class="pointloc" id="circ7"></div>
+                            The War Years
+                        </div>
+                        <div class="col point " id="loc8">
+                            <div class="pointloc" id="circ8"></div>
+                            Media Apostolate
+                        </div>
+                        <div class="col point " id="loc9">
+                            <div class="pointloc" id="circ9"></div>
+                            Awards, Citations and Traits
+                        </div>
+                        <div class="col point " id="loc10">
+                            <div class="pointloc " id="circ10"></div>
+                            Lived Poor, Loved the Poor
+                        </div>
+                        <div class="col point " id="loc11">
+                            <div class="pointloc " id="circ11"></div>
+                            Highlights of Life and Ministry and Beacon of Love
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col col-xl-1 d-none d-xl-block margin"></div>
+        </div>
+    </div>
+
+
+</body>
+
+
+
+</html>

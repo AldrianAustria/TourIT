@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>My Page</title>
+</head>
+
+<body>
+    <h2>Location ID: <span id="loc"></span></h2>
+
+    <script>
+        var last_loc = '';
+        setInterval(function() {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    var parser = new DOMParser();
+                    var xml = parser.parseFromString(xhr.responseText, 'application/xml');
+                    var container = document.getElementById('loc');
+                    container.innerHTML = '';
+                    var items = xml.getElementsByTagName('item');
+                    for (var i = 0; i < items.length; i++) {
+                        var item = items[i];
+                        var location = item.getElementsByTagName('ID')[0].textContent;
+                    }
+                    if (location != 'NULL') {
+                        container.innerHTML += location;
+                        last_loc = location;
+                    } else {
+                        container.innerHTML += '<p>' + last_loc + '</p>';
+                    }
+                }
+            };
+
+            xhr.open('GET', 'db_xml.php', true);
+            xhr.send();
+        }, 500);
+        console.log(last_loc);
+    </script>
+</body>
+
+</html>

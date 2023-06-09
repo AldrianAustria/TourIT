@@ -1,0 +1,57 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<body>
+    <h1>Battery and Location Management</h1>
+    <h2>Battery: <span id="battery_val"></span>%</div>
+        <h2>Location ID: <span id="loc_val"></span></div>
+            <script>
+                //setInterval(function() {
+                var xmlhttp = new XMLHttpRequest();
+                xmlhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        var xmlDoc = this.responseXML;
+
+                        var bat = xmlDoc.getElementsByTagName("battery")[0].childNodes[0].nodeValue;
+                        var loc = xmlDoc.getElementsByTagName("location")[0].childNodes[0].nodeValue;
+
+                        document.getElementById("battery_val").innerHTML = bat * 25;
+                        document.getElementById("loc_val").innerHTML = loc;
+                    }
+                };
+                xmlhttp.open("GET", "../../xml_files/loc_bat.xml", true);
+                xmlhttp.send();
+                //}, 5000);
+            </script>
+</body>
+
+</html> -->
+
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>ESP32 Camera Live Feed</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+
+<body>
+    <img id="live-feed" src="">
+    <!-- <img src="wificam.php" alt=""> -->
+</body>
+<script>
+    $(document).ready(function() {
+        setInterval(function() {
+            $('#live-feed').attr('src', 'wificam.php?' + new Date().getTime());
+        }, 375); // adjust the interval time as needed
+    });
+</script>
+
+</html>
