@@ -170,20 +170,6 @@ while True:
 
     if(Arduino.inWaiting() > 0):
         arduino_value = int(Arduino.readline().decode().strip())
-        # if(arduino_value != 100):
-        #     con1 = pymysql.connect(host="192.168.132.174", user="root", passwd="", database="tourit")
-        #     cursor1 = con1.cursor()
-
-        #     query1 = "UPDATE location SET `loc`=%s WHERE `id`=1"
-
-        #     cursor1.execute(query1, (arduino_value,))
-        #     con1.commit()
-
-        #     cursor1.close()
-        #     con1.close()
-        
-        
-        ##############################
         if(arduino_value == 1):
             command_send = True
             print("Station 1 Start")
